@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!-- Coding By CodingNepal - youtube.com/codingnepal -->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">  
+    <title>Language Translator | RISHABH</title>
+    <link href="{{ url_for('static', filename='Css/tstyle.css') }}" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Font Awesome CDN Link for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  </head>
+  <body>
+    <div class="container">
+      <form method="POST" action="/translator">
+        <div class="wrapper">
+          <div class="text-input">
+            <textarea spellcheck="false" class="from-text" name="trs" placeholder="Enter text"></textarea>
+            <textarea spellcheck="false" readonly disabled class="to-text" placeholder="Translation"></textarea>
+          </div>
+          <ul class="controls">
+            <li class="row from">
+              <div class="icons">
+                <i id="from" class="fas fa-volume-up"></i>
+                <i id="from" class="fas fa-copy"></i>
+              </div>
+              
+              <select name="comp_select">
+                {% for i in data.langv %}
+                  {% for j in range(0,1) %}
+                    <option value="{{i}}">{{data.lang[i]}}</option>
+                  {% endfor %} 
+                {% endfor %}               
+              </select>
+            </li>
+            <li class="exchange"><i class="fas fa-exchange-alt"></i></li>
+            <li class="row to">
+            <select>
+              {% for i in data.langv %}
+                {% for j in range(0,1) %}
+                  <option name="vki" value="{{i}}">{{data.lang[i]}}</option>
+                {% endfor %} 
+              {% endfor %}               
+            </select>
+              <div class="icons">
+                <i id="to" class="fas fa-volume-up"></i>
+                <i id="to" class="fas fa-copy"></i>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <button type="submit">Translate Text</button>
+      </form>
+    </div>
+
+    <!-- <script src="{{ url_for('static', filename='Java/countries.js') }}"></script> -->
+    <!-- <script src="{{ url_for('static', filename='Java/tscript.js') }}"></script> -->
+    
+
+  </body>
+</html>
