@@ -1,5 +1,6 @@
-from flask import Flask, redirect, request, render_template
+from flask import Flask, redirect, request, render_template, jsonify
 import search as sr
+import random
 
 app = Flask(__name__)
 
@@ -56,6 +57,18 @@ def translatorr():
             "title": query
         }
     return render_template("translator.html",data=data)
+
+
+@app.route('/img-picker/jkhaidkljf/jhtyulkjnsdf/wweuyiwqkbsd')
+def get_random_animated_gifs():
+    # Choose a random number of GIF files to return (0 to 5)
+    gif_num = random.randint(0, 5)
+    
+    # Create a list of URLs for the chosen GIF files
+    url = f'https://raw.githubusercontent.com/RishabhSahil/rs.dev/788a0c78da8b1431674157f5d2a7cb6aa50f22eb/static/animated-img/gif-{gif_num}.gif'
+    
+    # Return the URL
+    return jsonify({'url': url})
 
 if __name__ == '__main__':
    app.run(host="0.0.0.0", port=5000, debug=True)
