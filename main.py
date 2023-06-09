@@ -1,75 +1,117 @@
-from flask import Flask, redirect, request, render_template, jsonify
-import search as sr
+from flask import Flask, render_template, request, session, redirect, url_for
+from flask_socketio import join_room, leave_room, send, SocketIO
 import random
+from string import ascii_uppercase
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "fegdfgukjhnhdertertsiluhajfshgiuslaukdjnkjafhdsyutyuaoishasjfuawkysdhqrwtoiAUHBX ZHF"
+socketio = SocketIO(app)
 
+rooms = {}
 
-@app.route('/', methods =["GET", "POST"])
+def generate_unique_code(length):
+    while True:
+        code = ""
+        for _ in range(length):
+            code += random.choice(ascii_uppercase)
+        
+        if code not in rooms:
+            break
+    
+    return code
+
+@app.route("/", methods=["POST", "GET"])
 def home():
-    return render_template('index.html')
+    session.clear()
+    if request.method == "POST":
+        name = request.form.get("name")
+        code = request.form.get("code")
+        join = request.form.get("join", False)
+        create = request.form.get("create", False)
 
+        if not name:
+            return render_template("home.html", error="Please enter a name.", code=code, name=name)
 
-@app.route(f'/search', methods =["GET", "POST"])
-def search():
-    search = request.args.get("q")
-    aa=sr.search_query(search.lower())
-    answer = aa
-    if search==False:
-        return render_template('index.html')
-    if request.method == 'GET': 
-        request.form.get('q')
-        data={
-            "title":search,
-            "search":search,
-            "answer":answer,
-            "idlinks":list(answer["links"].keys()) 
-        }
-        print(str(search))
-    return render_template('search.html',data=data)
+        if join != False and not code:
+            return render_template("home.html", error="Please enter a room code.", code=code, name=name)
+        
+        room = code
+        if create != False:
+            room = generate_unique_code(4)
+            rooms[room] = {"members": 0, "messages": []}
+        elif code not in rooms:
+            return render_template("home.html", error="Room does not exist.", code=code, name=name)
+        
+        session["room"] = room
+        session["name"] = name
+        return redirect(url_for("room"))
 
-@app.route('/translator', methods =["GET", "POST"])
-def translatorr():
-    lang = sr.languages()
+    return render_template("home.html")
+
+@app.route("/test")
+def test():
     data = {
-        "lang": lang,
-        "langv": list(lang.keys()),
-        "langse": "en",
-        "langvles": "english",
-        "answer": "Translation",
-        "title": "Language Translator"
-    } 
-    if request.method == 'POST':
-        query = request.form.get('question')
-        select = request.form.get('comp_select')
-        langvle = lang[select]
-        query = str(query)
-        trans_result=sr.rishabh_translate(text=query,lang=select)
-        langq = trans_result.src
-        data = {
-            "lang": lang,
-            "langv": list(lang.keys()),
-            "langse": select,
-            "langvles": langvle,
-            "langqu": langq.lower(),
-            "question": query,
-            "answer": trans_result,
-            "title": query
-        }
-    return render_template("translator.html",data=data)
+        "query_time": "20:23",
+        "query": "Hello",
+        "replay_time": "21:24",
+        "replay": "Hello There"
+
+    }
+    return render_template("index.html",data=data)
 
 
-@app.route('/img-picker/jkhaidkljf/jhtyulkjnsdf/wweuyiwqkbsd')
-def get_random_animated_gifs():
-    # Choose a random number of GIF files to return (0 to 5)
-    gif_num = random.randint(0, 5)
+@app.route("/room")
+def room():
+    room = session.get("room")
+    if room is None or session.get("name") is None or room not in rooms:
+        return redirect(url_for("home"))
+
+    return render_template("room.html", code=room, messages=rooms[room]["messages"])
+
+@socketio.on("message")
+def message(data):
+    room = session.get("room")
+    if room not in rooms:
+        return 
     
-    # Create a list of URLs for the chosen GIF files
-    url = f'https://raw.githubusercontent.com/RishabhSahil/rs.dev/788a0c78da8b1431674157f5d2a7cb6aa50f22eb/static/animated-img/gif-{gif_num}.gif'
+    content = {
+        "name": session.get("name"),
+        "message": data["data"]
+    }
+    send(content, to=room)
+    rooms[room]["messages"].append(content)
+    print(f"{session.get('name')} said: {data['data']}")
+
+@socketio.on("connect")
+def connect(auth):
+    room = session.get("room")
+    name = session.get("name")
+    if not room or not name:
+        return
+    if room not in rooms:
+        leave_room(room)
+        return
     
-    # Return the URL
-    return jsonify({'url': url})
+    join_room(room)
+    send({"name": name, "message": "has entered the room"}, to=room)
+    rooms[room]["members"] += 1
+    print(f"{name} joined room {room}")
+
+@socketio.on("disconnect")
+def disconnect():
+    room = session.get("room")
+    name = session.get("name")
+    leave_room(room)
+
+    if room in rooms:
+        rooms[room]["members"] -= 1
+        if rooms[room]["members"] <= 0:
+            del rooms[room]
+    
+    send({"name": name, "message": "has left the room"}, to=room)
+    print(f"{name} has left the room {room}")
 
 if __name__ == '__main__':
-   app.run(host="0.0.0.0", port=5000, debug=True)
-    # app.run()
+   socketio.run(app,host="0.0.0.0", port=5000, debug=True)
+# if __name__ == "__main__":
+#     socketio.run(app, debug=True)
